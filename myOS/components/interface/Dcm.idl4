@@ -1,0 +1,10 @@
+/*************************************************************************
+    > File Name: Dcm.idl4
+    > SPDX-License-Identifier: BSD-2-Clause
+    > Author: XXX
+    > Created Time: 2021年11月17日 星期三 13时55分59秒
+ ************************************************************************/
+
+procedure Dcm_inf {
+	BufReq_ReturnType StartOfReception(in PduIdType dcmRxPduId, in PduLengthType tpSduLength, in dataport_ptr_t ptr1);
+}

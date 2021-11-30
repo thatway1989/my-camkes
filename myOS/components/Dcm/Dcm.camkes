@@ -1,0 +1,16 @@
+/*************************************************************************
+    > File Name: Dcm.camkes
+    > SPDX-License-Identifier: BSD-2-Clause
+    > Author: XXX
+    > Created Time: 2021年11月17日 星期三 13时50分54秒
+ ************************************************************************/
+
+import "../interface/Dcm.idl4";
+
+component Dcm {
+	include "ComStack_Types.h";
+
+	control;
+	dataport Buf dataport_ptr1;
+	provides Dcm_inf Dcm;
+}

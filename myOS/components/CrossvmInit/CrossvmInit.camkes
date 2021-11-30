@@ -1,0 +1,21 @@
+/*
+ * Copyright 2019, Data61, CSIRO (ABN 41 687 119 230)
+ *
+ * SPDX-License-Identifier: BSD-2-Clause
+ */
+
+import "../interface/Dcm.idl4";
+
+component CrossvmInit {
+	include "ComStack_Types.h";
+
+    control;
+    consumes Ready ready;
+    emits Done done;
+    dataport Buf(4096) dest;
+    dataport Buf(4096) src;
+	dataport Buf dataport_ptr1;
+	uses Dcm_inf Dcm;
+
+	emits SomethingHappenedEvent TimerTest;
+}

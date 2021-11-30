@@ -1,0 +1,47 @@
+/*
+ * Copyright 2019, Data61, CSIRO (ABN 41 687 119 230)
+ *
+ * SPDX-License-Identifier: BSD-2-Clause
+ */
+
+#include <configurations/vm.h>
+#include "include/myos_composition.h"
+
+import <std_connector.camkes>;
+import <global-connectors.camkes>;
+import <seL4VMDTBPassthrough.idl4>;
+import <FileServerInterface.camkes>;
+import <FileServer/FileServer.camkes>;
+import <SerialServer/SerialServer.camkes>;
+import <TimeServer/TimeServer.camkes>;
+import <vm-connectors.camkes>;
+import "include/devices.camkes";
+import "components/CrossvmInit/CrossvmInit.camkes";
+import "components/Dcm/Dcm.camkes";
+import "components/TimerTest/TimerTest.camkes";
+
+#define FIRST_CROSS_VM_BADGE (1 << 3)
+
+component VM {
+    VM_INIT_DEF()
+    dataport Buf(4096) crossvm_dp_0;
+    dataport Buf(4096) crossvm_dp_1;
+    emits Ready ready;
+    consumes Done done;
+}
+
+assembly {
+    composition {
+        VM_GENERAL_COMPOSITION_DEF()
+        VM_COMPOSITION_DEF(0)
+		CROSSVM_INIT_COMPOSITION_DEF()
+
+		DCM_COMPOSITION_DEF()
+		TIMERTEST_COMPOSITION_DEF()
+    }
+    configuration {
+        VM_GENERAL_CONFIGURATION_DEF()
+        VM_CONFIGURATION_DEF(0)
+		VM_COMFIGURATION_EXTRA_DEF()
+    }
+}
