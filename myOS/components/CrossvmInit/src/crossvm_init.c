@@ -43,8 +43,8 @@ int run(void)
         ready_wait();
         printf("CrossvmInit:Got an event, and the dest is:%s\n", (char *)dest);
 
-		//my_cust_fun((char *)dest);
-		my_cust_timer();
+		my_cust_fun((char *)dest);
+		//my_cust_timer();
 		printf("CrossvmInit: my cust fun end\n");
         //done_emit_underlying();
     }
