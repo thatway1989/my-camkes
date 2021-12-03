@@ -54,3 +54,9 @@ dataport_read /dev/uio0 4096    #读共享内存
 echo -ne "XXXX\n\0" | dataport_write /dev/uio0 4096   #写入共享内存
 
 emits_event_emit /dev/uio0    #发送激活事件
+
+发送激活事件后，projects/my-camkes/myOS/components/CrossvmInit/src/crossvm_init.c
+
+里面的run函数启动后会一直ready_wait()等待，直到linux终端执行了emits_event_emit命令，就继续往下执行。
+
+linux写入的共享内存可以在(char *)dest这个变量里面读取到。
