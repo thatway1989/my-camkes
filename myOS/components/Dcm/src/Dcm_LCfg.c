@@ -12,7 +12,7 @@
  * <http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt>
  *-------------------------------- Arctic Core -----------------------------*/
 
-#warning "This default file may only be used as an example!"
+/* warning "This default file may only be used as an example!" */
 #include "Dcm.h"
 
 /*********************

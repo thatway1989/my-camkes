@@ -27,7 +27,8 @@
 //lint -esym(960,20.2) // PC-Lint LINT EXCEPTION
 #define	NULL	0
 #endif
-
+#define NULL_PTR    ((void *)0)
+#define false 0
 
 typedef struct {
     uint16 vendorID;

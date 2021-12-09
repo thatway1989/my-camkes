@@ -2,6 +2,13 @@
 #ifndef LOG_H_
 #define LOG_H_
 
+#include <stdio.h>
+
+#define DEBUG_LOW       1u
+#define DEBUG_MEDIUM    2u
+#define DEBUG_HIGH      3u
+#define DEBUG_NONE      4u
+
 typedef enum
 {
   LOG_ERROR = 1,
@@ -38,3 +45,10 @@ typedef enum
 	} while(0)
 
 #endif
+
+#define DEBUG(_level,...) \
+    do { \
+        if(_level >= LOG_LEVEL) { \
+            printf (__VA_ARGS__); \
+        }; \
+    } while(0);

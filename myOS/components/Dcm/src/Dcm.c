@@ -57,10 +57,12 @@
 #endif
 #endif
 
+//#include "MemMap.h"
 //#include "SchM_Dcm.h"
 //#include "ComM_Dcm.h"
-
+//#include "PduR_Dcm.h"
 #include "ComStack_Types.h"
+
 
 // State variable
 typedef enum
@@ -98,6 +100,7 @@ void Dcm_GetVersionInfo (Std_VersionInfoType* versionInfo)
     versionInfo->sw_minor_version = (uint8)DCM_SW_MINOR_VERSION;	/* SBSW_DCM_PARAM_PTR_WRITE */
     versionInfo->sw_patch_version = (uint8)DCM_SW_PATCH_VERSION;	/* SBSW_DCM_PARAM_PTR_WRITE */
 }
+
 #endif /* DCM_VERSION_INFO_API */
 
 /*
@@ -107,14 +110,15 @@ void Dcm_GetVersionInfo (Std_VersionInfoType* versionInfo)
 void Dcm_Init(const Dcm_ConfigType *ConfigPtr) /* @req DCM037 */
 {
     VALIDATE_NO_RV(((NULL != ConfigPtr) && (NULL != ConfigPtr->Dsl) && (NULL != ConfigPtr->Dsd) && (NULL != ConfigPtr->Dsp)), DCM_INIT_ID, DCM_E_CONFIG_INVALID);
-
+ 
+   LOGI("begin");
     Dcm_ConfigPtr = ConfigPtr;
 #ifdef DCM_USE_SERVICE_RESPONSEONEVENT
     DCM_ROE_Init();
 #endif
-    //DslInit();
-    //DsdInit();
-    //DspInit(TRUE);
+    DslInit();
+    DsdInit();
+    DspInit(TRUE);
     firstMainAfterInit = TRUE;
     dcmState = DCM_INITIALIZED;
 
@@ -176,16 +180,16 @@ void Dcm_MainFunction(void) /* @req DCM362 */
 #ifdef DCM_USE_SERVICE_RESPONSEONEVENT
             DcmRoeCheckProtocolStartRequest();
 #endif
-            //DspCheckProtocolStartRequests();
+            DspCheckProtocolStartRequests();
             DcmSetProtocolStartRequestsAllowed(FALSE);
-            //DcmExecuteStartProtocolRequest();
+            DcmExecuteStartProtocolRequest();
             firstMainAfterInit = FALSE;
         }
-        //DspPreDsdMain();
-        //DsdMain();
-        //DspMain();
-        //DspTimerMain();
-        //DslMain();
+        DspPreDsdMain();
+        DsdMain();
+        DspMain();
+        DspTimerMain();
+        DslMain();
 #ifdef DCM_USE_SERVICE_RESPONSEONEVENT
         Dcm_ROE_MainFunction();
 #endif
@@ -211,8 +215,7 @@ BufReq_ReturnType Dcm_StartOfReception(PduIdType dcmRxPduId, PduLengthType tpSdu
     VALIDATE_RV(dcmState == DCM_INITIALIZED, DCM_START_OF_RECEPTION_ID, DCM_E_UNINIT, BUFREQ_NOT_OK);
     VALIDATE_RV(dcmRxPduId < DCM_DSL_RX_PDU_ID_LIST_LENGTH, DCM_START_OF_RECEPTION_ID, DCM_E_PARAM, BUFREQ_NOT_OK);
 
-   //returnCode = DslStartOfReception(dcmRxPduId, tpSduLength, rxBufferSizePtr, FALSE);
-    returnCode = BUFREQ_OK;
+   returnCode = DslStartOfReception(dcmRxPduId, tpSduLength, rxBufferSizePtr, FALSE);
 
     LOGI("end");
     return returnCode;
@@ -223,8 +226,7 @@ BufReq_ReturnType Dcm_CopyRxData(PduIdType dcmRxPduId, PduInfoType *pduInfoPtr, 
     VALIDATE_RV(dcmState == DCM_INITIALIZED, DCM_COPY_RX_DATA_ID, DCM_E_UNINIT, BUFREQ_NOT_OK);
     VALIDATE_RV(dcmRxPduId < DCM_DSL_RX_PDU_ID_LIST_LENGTH, DCM_COPY_RX_DATA_ID, DCM_E_PARAM, BUFREQ_NOT_OK);
 
-	//return DslCopyDataToRxBuffer(dcmRxPduId, pduInfoPtr, rxBufferSizePtr);
-	return 0;
+	return DslCopyDataToRxBuffer(dcmRxPduId, pduInfoPtr, rxBufferSizePtr);
 /*lint -e{818} this defined as per autosar api cannot be changed */
 }
 
@@ -233,7 +235,7 @@ void Dcm_TpRxIndication(PduIdType dcmRxPduId, NotifResultType result)
     VALIDATE_NO_RV(dcmState == DCM_INITIALIZED, DCM_TP_RX_INDICATION_ID, DCM_E_UNINIT);
     VALIDATE_NO_RV(dcmRxPduId < DCM_DSL_RX_PDU_ID_LIST_LENGTH, DCM_TP_RX_INDICATION_ID, DCM_E_PARAM);
 
-    //DslTpRxIndicationFromPduR(dcmRxPduId, result, FALSE, FALSE);
+    DslTpRxIndicationFromPduR(dcmRxPduId, result, FALSE, FALSE);
 }
 
 
@@ -245,8 +247,7 @@ Std_ReturnType Dcm_GetActiveProtocol(Dcm_ProtocolType *activeProtocol)
 
     /* According to 4.0.3 spec. E_OK should always be returned.
      * But if there is no active protocol? */
-    //returnCode = DslGetActiveProtocol(activeProtocol);
-    returnCode = 0;
+    returnCode = DslGetActiveProtocol(activeProtocol);
 
     return returnCode;
 }
@@ -259,9 +260,9 @@ Std_ReturnType Dcm_GetSecurityLevel(Dcm_SecLevelType *secLevel)
      * So if we cannot get the current security level using DslGetSecurityLevel,
      * and this probably due to that there is no active protocol,
      * we report the default security level according to DCM033 */
-    //if( E_OK != DslGetSecurityLevel(secLevel) ) {
+    if( E_OK != DslGetSecurityLevel(secLevel) ) {
         *secLevel = DCM_SEC_LEV_LOCKED;
-    //}
+    }
     return E_OK;
 }
 
@@ -273,9 +274,9 @@ Std_ReturnType Dcm_GetSesCtrlType(Dcm_SesCtrlType *sesCtrlType)
      * So if we cannot get the current session using DslGetSesCtrlType,
      * and this probably due to that there is no active protocol,
      * we report the default session according to  DCM034 */
-    //if( E_OK !=  DslGetSesCtrlType(sesCtrlType) ) {
+    if( E_OK !=  DslGetSesCtrlType(sesCtrlType) ) {
         *sesCtrlType = DCM_DEFAULT_SESSION;
-    //}
+    }
     return E_OK;
 }
 
@@ -284,7 +285,7 @@ void Dcm_TpTxConfirmation(PduIdType dcmTxPduId, NotifResultType result)
     VALIDATE_NO_RV(dcmState == DCM_INITIALIZED, DCM_TP_TX_CONFIRMATION_ID, DCM_E_UNINIT);
     VALIDATE_NO_RV((dcmTxPduId < DCM_DSL_TX_PDU_ID_LIST_LENGTH) || IS_PERIODIC_TX_PDU(dcmTxPduId), DCM_TP_TX_CONFIRMATION_ID, DCM_E_PARAM);
 
-    //DslTpTxConfirmation(dcmTxPduId, result);
+    DslTpTxConfirmation(dcmTxPduId, result);
 }
 
 BufReq_ReturnType Dcm_CopyTxData(PduIdType dcmTxPduId, PduInfoType *pduInfoPtr, RetryInfoType *periodData, PduLengthType *txDataCntPtr)
@@ -292,7 +293,7 @@ BufReq_ReturnType Dcm_CopyTxData(PduIdType dcmTxPduId, PduInfoType *pduInfoPtr, 
     VALIDATE_RV(dcmState == DCM_INITIALIZED, DCM_COPY_TX_DATA_ID, DCM_E_UNINIT, BUFREQ_NOT_OK);
     VALIDATE_RV((dcmTxPduId < DCM_DSL_TX_PDU_ID_LIST_LENGTH) || IS_PERIODIC_TX_PDU(dcmTxPduId), DCM_COPY_TX_DATA_ID, DCM_E_PARAM, BUFREQ_NOT_OK);
 
-    //return DslCopyTxData(dcmTxPduId, pduInfoPtr, periodData, txDataCntPtr);
+    return DslCopyTxData(dcmTxPduId, pduInfoPtr, periodData, txDataCntPtr);
 
 }
 
@@ -302,7 +303,7 @@ BufReq_ReturnType Dcm_CopyTxData(PduIdType dcmTxPduId, PduInfoType *pduInfoPtr, 
  */
 Std_ReturnType Dcm_ResetToDefaultSession( void ) {
     VALIDATE_RV((DCM_INITIALIZED == dcmState), DCM_RESETTODEFAULTSESSION_ID, DCM_E_UNINIT, E_NOT_OK);
-    //DslSetSesCtrlType(DCM_DEFAULT_SESSION);
+    DslSetSesCtrlType(DCM_DEFAULT_SESSION);
     return E_OK;
 }
 /* @req DCM356 */
@@ -364,7 +365,7 @@ void Dcm_ExternalSetNegResponse(Dcm_MsgContextType* pMsgContext, Dcm_NegativeRes
 {
     VALIDATE_NO_RV((DCM_INITIALIZED == dcmState), DCM_EXTERNALSETNEGRESPONSE_ID, DCM_E_UNINIT);
     VALIDATE_NO_RV((NULL != pMsgContext), DCM_EXTERNALSETNEGRESPONSE_ID, DCM_E_PARAM);
-    //DsdExternalSetNegResponse(pMsgContext, ErrorCode);
+    DsdExternalSetNegResponse(pMsgContext, ErrorCode);
 }
 
 /**
@@ -377,11 +378,20 @@ void Dcm_ExternalProcessingDone(Dcm_MsgContextType* pMsgContext)
 {
     VALIDATE_NO_RV((DCM_INITIALIZED == dcmState), DCM_EXTERNALPROCESSINGDONE_ID, DCM_E_UNINIT);
     VALIDATE_NO_RV((NULL != pMsgContext), DCM_EXTERNALPROCESSINGDONE_ID, DCM_E_PARAM);
-    //DsdExternalProcessingDone(pMsgContext);
+    DsdExternalProcessingDone(pMsgContext);
+}
+
+void SchM_Enter_Dcm_EA_0()
+{
+
+}
+
+void SchM_Exit_Dcm_EA_0()
+{
+
 }
 
 int run(void){
-
 	LOGI("run begin");
 	Dcm_Init(&DCM_Config);
 
