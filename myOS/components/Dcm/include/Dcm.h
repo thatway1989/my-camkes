@@ -108,6 +108,17 @@ void SchM_Enter_Dcm_EA_0();
 void SchM_Exit_Dcm_EA_0();
 
 /*
+ * Interfaces for BSW components (8.3.1)
+ */
+/* @req DCM065 */
+/* @req DCM335 */
+/* @req DCM336 */
+void Dcm_GetVersionInfo (Std_VersionInfoType* versionInfo);
+
+void Dcm_Init( const Dcm_ConfigType *ConfigPtr ); /* @req DCM037 */
+
+
+/*
  * Interfaces for BSW modules and to SW-Cs (8.3.2)
  */
 Std_ReturnType Dcm_GetSecurityLevel(Dcm_SecLevelType *secLevel); /* @req DCM338 */

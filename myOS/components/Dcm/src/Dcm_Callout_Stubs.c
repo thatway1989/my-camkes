@@ -18,6 +18,36 @@
 #if defined(USE_MCU)
 #include "Mcu.h"
 #endif
+/* @req DCM540 */
+Dcm_ReturnWriteMemoryType Dcm_WriteMemory(Dcm_OpStatusType OpStatus,
+                                               uint8 MemoryIdentifier,
+                                               uint32 MemoryAddress,
+                                               uint32 MemorySize,
+                                               uint8* MemoryData)
+{
+    (void)OpStatus;
+    (void)MemoryIdentifier;
+    (void)MemoryAddress;
+    (void)MemorySize;
+    (void)*MemoryData;
+	return DCM_WRITE_FAILED;
+}
+
+/* @req DCM539 */
+Dcm_ReturnReadMemoryType Dcm_ReadMemory(Dcm_OpStatusType OpStatus,
+                                               uint8 MemoryIdentifier,
+                                               uint32 MemoryAddress,
+                                               uint32 MemorySize,
+                                               uint8* MemoryData)
+{
+
+    (void)OpStatus;
+    (void)MemoryIdentifier;
+    (void)MemoryAddress;
+    (void)MemorySize;
+    (void)*MemoryData;
+	return DCM_READ_FAILED;
+}
 
 #ifdef DCM_NOT_SERVICE_COMPONENT
 Std_ReturnType Rte_Switch_DcmDiagnosticSessionControl_DcmDiagnosticSessionControl(Dcm_SesCtrlType session)
@@ -56,6 +86,59 @@ Std_ReturnType Rte_Switch_DcmControlDTCSetting_DcmControlDTCSetting(uint8 mode)
 }
 #endif
 
+/* @req DCM754 */
+Std_ReturnType Dcm_ProcessRequestDownload(Dcm_OpStatusType OpStatus, uint8 DataFormatIdentifier, uint32 MemoryAddress, uint32 MemorySize, uint32 *BlockLength, Dcm_NegativeResponseCodeType* ErrorCode)
+{
+    (void)OpStatus;
+    (void)DataFormatIdentifier;
+    (void)MemoryAddress;
+    (void)MemorySize;
+    (void)*BlockLength;
+    *ErrorCode = DCM_E_GENERALPROGRAMMINGFAILURE;
+    return E_NOT_OK;
+}
+
+/* @req DCM756 */
+Std_ReturnType Dcm_ProcessRequestUpload(Dcm_OpStatusType OpStatus, uint8 DataFormatIdentifier, uint32 MemoryAddress, uint32 MemorySize, Dcm_NegativeResponseCodeType* ErrorCode)
+{
+    (void)OpStatus;
+    (void)DataFormatIdentifier;
+    (void)MemoryAddress;
+    (void)MemorySize;
+    *ErrorCode = DCM_E_GENERALPROGRAMMINGFAILURE;
+    return E_NOT_OK;
+}
+
+/* @req DCM755 */
+Std_ReturnType Dcm_ProcessRequestTransferExit(Dcm_OpStatusType OpStatus, uint8 *ParameterRecord, uint32 ParameterRecordSize, Dcm_NegativeResponseCodeType* ErrorCode)
+{
+    (void)OpStatus;
+    (void)*ParameterRecord;
+    (void)ParameterRecordSize;
+    *ErrorCode = DCM_E_GENERALPROGRAMMINGFAILURE;
+    return E_NOT_OK;
+}
+
+/**
+ *
+ * @param Data
+ * @param ParameterRecordLength: In: The available buffer size, Out: Number of bytes written to Data
+ */
+void Dcm_Arc_GetDownloadResponseParameterRecord(uint8 *Data, uint16 *ParameterRecordLength) {
+    (void)*Data;
+    *ParameterRecordLength = 0;
+}
+
+/**
+ *
+ * @param Data
+ * @param ParameterRecordLength: In: The available buffer size, Out: Number of bytes written to Data
+ */
+void Dcm_Arc_GetTransferExitResponseParameterRecord(uint8 *Data, uint16 *ParameterRecordLength) {
+    (void)*Data;
+    *ParameterRecordLength = 0;
+}
+
 /* @req DCM543 */
 Std_ReturnType Dcm_SetProgConditions(Dcm_ProgConditionsType *ProgConditions)
 {
@@ -78,3 +161,15 @@ void Dcm_Confirmation(Dcm_IdContextType idContext,PduIdType dcmRxPduId,Dcm_Confi
     (void)status;
 }
 
+#ifdef DCM_USE_SERVICE_RESPONSEONEVENT
+/**
+ *
+ * @param ROEPreConfigPtr
+ * @return E_OK: PreConfig available, E_NOT_OK: PreConfig not available
+ */
+Std_ReturnType Dcm_Arc_GetROEPreConfig(const Dcm_ArcROEDidPreconfigType **ROEPreConfigPtr)
+{
+    (void)ROEPreConfigPtr; //lint !e920 cast from pointer to void
+    return E_NOT_OK;
+}
+#endif

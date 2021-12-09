@@ -24,7 +24,20 @@
 #include <string.h>
 #include "Dcm.h"
 #include "Dcm_Internal.h"
-
+//#include "MemMap.h"
+#if defined(USE_COMM)
+#include "ComM_Dcm.h"
+#endif
+//#include "PduR_Dcm.h"
+//#include "PduR_Types.h" // OBD: for preemption cancel PDUR tx
+//#include "PduR.h"       // OBD: for cancel
+#include "ComStack_Types.h"
+//#include "Cpu.h"
+//#include "debug.h"
+#ifndef DCM_NOT_SERVICE_COMPONENT
+#include "Rte_Dcm.h"
+#endif
+//#include "SchM_Dcm.h"
 
 #define DECREMENT(timer) { if (timer > 0){timer--;} }
 #define DCM_CONVERT_MS_TO_MAIN_CYCLES(x)  ((x)/DCM_MAIN_FUNCTION_PERIOD_TIME_MS)
@@ -101,6 +114,18 @@ static inline void stopS3SessionTimer(Dcm_DslRunTimeProtocolParametersType *runt
 static inline void startPreemptTimer(Dcm_DslRunTimeProtocolParametersType *runtime, const Dcm_DslProtocolRowType *protocolRow) {
     runtime->preemptTimeoutCount= DCM_CONVERT_MS_TO_MAIN_CYCLES(protocolRow->DslProtocolPreemptTimeout);
 }
+
+#if defined(USE_COMM)
+static boolean findProtocolRx(PduIdType dcmRxPduId, const Dcm_DslProtocolRxType **protocolRx)
+{
+    boolean ret = FALSE;
+    if (dcmRxPduId < DCM_DSL_RX_PDU_ID_LIST_LENGTH) {
+        *protocolRx = &Dcm_ConfigPtr->Dsl->DslProtocol->DslProtocolRxGlobalList[dcmRxPduId];
+        ret = TRUE;
+    }
+    return ret;
+}
+#endif
 
 const Dcm_DspSessionRowType *getActiveSessionRow(const Dcm_DslRunTimeProtocolParametersType *runtime) {
      const Dcm_DspSessionRowType *sessionRow = Dcm_ConfigPtr->Dsp->DspSession->DspSessionRow;
@@ -507,6 +532,22 @@ static uint32 AdjustP2Timing(uint32 maxValue, uint32 adjustValue)
     return result;
 }
 
+void DslDsdSendResponsePending(PduIdType rxPduId)
+{
+    const Dcm_DslProtocolRxType *protocolRx = NULL;
+    const Dcm_DslMainConnectionType *mainConnection = NULL;
+    const Dcm_DslConnectionType *connection = NULL;
+    const Dcm_DslProtocolRowType *protocolRow = NULL;
+    Dcm_DslRunTimeProtocolParametersType *rxRuntime = NULL;
+    const Dcm_DspSessionRowType *sessionRow;
+    if (TRUE == findRxPduIdParentConfigurationLeafs(rxPduId, &protocolRx, &mainConnection, &connection, &protocolRow, &rxRuntime)) {
+        sendResponse(protocolRow, DCM_E_RESPONSEPENDING);
+        sessionRow = getActiveSessionRow(rxRuntime);
+        /* NOTE: + DCM_MAIN_FUNCTION_PERIOD_TIME_MS is used below due to that timeout is decremented once within the same mainfunction as request is processed.  */
+        rxRuntime->stateTimeoutCount = DCM_CONVERT_MS_TO_MAIN_CYCLES(AdjustP2Timing(sessionRow->DspSessionP2StarServerMax + DCM_MAIN_FUNCTION_PERIOD_TIME_MS, protocolRow->DslProtocolTimeLimit->TimStrP2StarServerAdjust)); /* Reinitiate timer, see 9.2.2. */
+        DECREMENT( rxRuntime->responsePendingCount );
+    }
+}
 // - - - - - - - - - - -
 
 static Std_ReturnType StartProtocolHelper(Dcm_ProtocolType protocolId) {
@@ -700,6 +741,74 @@ boolean DslPduRPduUsedForType2Tx(PduIdType pdurTxPduId, PduIdType *dcmTxPduId)
     return FALSE;
 #endif
 }
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+//  Implements 'void DslInternal_ResponseOnOneDataByPeriodicId(uint8 PericodID)' for simulator a periodic did data.
+// - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+Std_ReturnType DslInternal_ResponseOnOneDataByPeriodicId(uint8 PericodID, PduIdType rxPduId)
+{
+    Std_ReturnType ret = E_NOT_OK;
+    const Dcm_DslRunTimeProtocolParametersType *runtime;
+    runtime = NULL;
+    if( NULL != DcmDslRunTimeData.activeProtocol ) {
+        runtime =  DcmDslRunTimeData.activeProtocol->DslRunTimeProtocolParameters;
+        if(runtime != NULL) // find the runtime
+        {
+            PduLengthType rxBufferSize;
+            if( BUFREQ_OK == DslStartOfReception(rxPduId, 3, &rxBufferSize, TRUE)){
+                PduInfoType  periodData;
+                uint8 data[3];
+                periodData.SduDataPtr = data;
+                periodData.SduDataPtr[0] = SID_READ_DATA_BY_PERIODIC_IDENTIFIER;
+                periodData.SduDataPtr[1] = DCM_PERIODICTRANSMIT_DEFAULT_MODE;
+                periodData.SduDataPtr[2] = PericodID;
+                periodData.SduLength = 3;
+                if( BUFREQ_OK == DslCopyDataToRxBuffer(rxPduId, &periodData, &rxBufferSize) ) {
+                    DslTpRxIndicationFromPduR(rxPduId, NTFRSLT_OK, TRUE, FALSE);
+                } else {
+                    /* Something went wrong. Indicate that the reception was
+                     * not ok. */
+                    DslTpRxIndicationFromPduR(rxPduId, NTFRSLT_E_NOT_OK, TRUE, FALSE);
+                }
+                ret = E_OK;
+            }
+        }
+    }
+
+    return ret;
+}
+
+
+Std_ReturnType DslInternal_ResponseOnOneEvent(PduIdType rxPduId, uint8* request, uint8 requestLength)
+{
+    Std_ReturnType ret = E_NOT_OK;
+    const Dcm_DslRunTimeProtocolParametersType *runtime;
+    runtime = NULL;
+
+    if( NULL != DcmDslRunTimeData.activeProtocol ) {
+        runtime =  DcmDslRunTimeData.activeProtocol->DslRunTimeProtocolParameters;
+        if(runtime != NULL) // find the runtime
+        {
+            PduLengthType rxBufferSize;
+            if( BUFREQ_OK == DslStartOfReception(rxPduId, requestLength, &rxBufferSize, TRUE)){
+                PduInfoType  requestPdu;
+                requestPdu.SduDataPtr = request;
+                requestPdu.SduLength = requestLength;
+                if( BUFREQ_OK == DslCopyDataToRxBuffer(rxPduId, &requestPdu, &rxBufferSize) ) {
+                    DslTpRxIndicationFromPduR(rxPduId, NTFRSLT_OK, TRUE, FALSE);
+                } else {
+                    /* Something went wrong. Indicate that the reception was
+                     * not ok. */
+                    DslTpRxIndicationFromPduR(rxPduId, NTFRSLT_E_NOT_OK, TRUE, FALSE);
+                }
+                ret = E_OK;
+            }
+        }
+    }
+
+    return ret;
+}
+
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //  Implements 'void Dcm_MainFunction(void)' for DSL.
@@ -1508,6 +1617,30 @@ void DslTpTxConfirmation(PduIdType dcmTxPduId, NotifResultType result) {
 #endif
 }
 
+
+#if (DCM_MANUFACTURER_NOTIFICATION == STD_ON) || (DCM_USE_JUMP_TO_BOOT == STD_ON) || defined(DCM_USE_SERVICE_LINKCONTROL) || (defined(DCM_USE_SERVICE_RESPONSEONEVENT) && defined(USE_NVM))
+Std_ReturnType Arc_DslGetRxConnectionParams(PduIdType rxPduId, uint16* sourceAddress, Dcm_ProtocolAddrTypeType* reqType, Dcm_ProtocolType *protocolId) {
+    const Dcm_DslProtocolRxType *protocolRx = NULL;
+    const Dcm_DslMainConnectionType *mainConnection = NULL;
+    const Dcm_DslConnectionType *connection = NULL;
+    const Dcm_DslProtocolRowType *protocolRow = NULL;
+    Dcm_DslRunTimeProtocolParametersType *runtime = NULL;
+    Std_ReturnType ret = E_OK;
+
+    if (findRxPduIdParentConfigurationLeafs(rxPduId, &protocolRx, &mainConnection, &connection, &protocolRow, &runtime)) {
+        *sourceAddress = mainConnection->DslRxTesterSourceAddress;
+        *reqType = protocolRx->DslProtocolAddrType;
+        *protocolId = protocolRow->DslProtocolID;
+    }
+    else {
+        DCM_DET_REPORTERROR(DCM_GLOBAL_ID, DCM_E_UNEXPECTED_EXECUTION);
+        ret = E_NOT_OK;
+    }
+    return ret;
+}
+
+#endif
+
 /**
  * Tries to find a physical protocol given a protocol id and a tester source address
  * @param protocolId
@@ -1589,6 +1722,26 @@ Std_ReturnType DslDspSilentlyStartProtocol(uint8 session, uint8 protocolId, uint
 }
 
 /**
+ * Updates communication mode for a network
+ * @param network
+ * @param comMode
+ */
+#if defined(USE_COMM)
+void DslComModeEntered(uint8 network, DcmComModeType comMode)
+{
+    const Dcm_ComMChannelConfigType *comMChannelcfg;
+    boolean done = FALSE;
+    comMChannelcfg = Dcm_ConfigPtr->DcmComMChannelCfg;
+    while((FALSE == comMChannelcfg->Arc_EOL) && (FALSE == done)) {
+        if( comMChannelcfg->NetworkHandle == network ) {
+            NetWorkComMode[comMChannelcfg->InternalIndex] = comMode;
+            done = TRUE;
+        }
+        comMChannelcfg++;
+    }
+}
+#endif
+/**
  * Injects diagnostic request on Dcm startup
  * @param sid
  * @param subFnc
@@ -1631,3 +1784,45 @@ Std_ReturnType DslDspResponseOnStartupRequest(uint8 sid, uint8 subFnc, uint8 pro
     return ret;
 }
 
+#if (DCM_USE_SPLIT_TASK_CONCEPT == STD_ON)
+void DslSetDspProcessingActive(PduIdType dcmRxPduId, boolean state)
+{
+    const Dcm_DslProtocolRxType *protocolRx = NULL;
+    const Dcm_DslMainConnectionType *mainConnection = NULL;
+    const Dcm_DslConnectionType *connection = NULL;
+    const Dcm_DslProtocolRowType *protocolRow = NULL;
+    Dcm_DslRunTimeProtocolParametersType *runtime = NULL;
+
+    if (findRxPduIdParentConfigurationLeafs(dcmRxPduId, &protocolRx, &mainConnection, &connection, &protocolRow, &runtime)) {
+        const Dcm_DslBufferType *externalRxBuffer = protocolRow->DslProtocolRxBufferID;
+        const Dcm_DslBufferType *externalTxBuffer = protocolRow->DslProtocolTxBufferID;
+        /* Indication from Dsp that it is currently handling a request */
+
+        SchM_Enter_Dcm_EA_0();
+        externalRxBuffer->externalBufferRuntimeData->dspProcessingActive = state;
+        externalTxBuffer->externalBufferRuntimeData->dspProcessingActive = state;
+        SchM_Exit_Dcm_EA_0();
+    }
+}
+#endif
+
+#ifdef DCM_USE_SERVICE_COMMUNICATIONCONTROL
+/**
+ * Function used by Dsd to get protocol rx from pdu id
+ * @param rxPduId
+ * @param protocolRx
+ * @return
+ */
+Std_ReturnType DslDsdGetProtocolRx(PduIdType rxPduId, const Dcm_DslProtocolRxType **protocolRx)
+{
+    Std_ReturnType ret = E_NOT_OK;
+    const Dcm_DslMainConnectionType *mainConnection;
+    const Dcm_DslConnectionType *connection;
+    const Dcm_DslProtocolRowType *protocolRow;
+    Dcm_DslRunTimeProtocolParametersType *runtime;
+    if( findRxPduIdParentConfigurationLeafs(rxPduId, protocolRx, &mainConnection, &connection, &protocolRow, &runtime) ) {
+        ret = E_OK;
+    }
+    return ret;
+}
+#endif

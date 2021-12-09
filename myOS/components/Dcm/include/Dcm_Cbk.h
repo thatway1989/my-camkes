@@ -13,3 +13,30 @@
  *-------------------------------- Arctic Core -----------------------------*/
 
 
+
+
+
+
+
+
+#ifndef DCM_CBK_H_
+#define DCM_CBK_H_
+
+//lint -e451 //451 PC-Lint OK. Sl� av regel helt?
+#include "ComStack_Types.h"
+#include <camkes/dataport.h>
+
+/*
+ * Interfaces for callback notifications from PduR and ComM (8.4)
+ */
+BufReq_ReturnType Dcm_CopyRxData(PduIdType dcmRxPduId, PduInfoType *pduInfoPtr, PduLengthType *rxBufferSizePtr); /** @req DCM556 */
+//BufReq_ReturnType Dcm_StartOfReception(PduIdType dcmRxPduId, PduLengthType tpSduLength, PduLengthType *rxBufferSizePtr); /** @req DCM094 */
+BufReq_ReturnType Dcm_StartOfReception(PduIdType dcmRxPduId, PduLengthType tpSduLength, dataport_ptr_t ptr1); /** @req DCM094 */
+void Dcm_TpRxIndication(PduIdType dcmRxPduId, NotifResultType result); /** @req DCM093 */
+BufReq_ReturnType Dcm_CopyTxData(PduIdType dcmTxPduId, PduInfoType *pduInfoPtr, RetryInfoType *retryInfoPtr, PduLengthType *txDataCntPtr); /** @req DCM092 */
+void Dcm_TpTxConfirmation(PduIdType dcmTxPduId, NotifResultType result); /** @req DCM351 */
+void Dcm_ComM_NoComModeEntered( uint8 NetworkId ); /** @req DCM356 */
+void Dcm_ComM_SilentComModeEntered( uint8 NetworkId ); /** @req DCM358 */
+void Dcm_ComM_FullComModeEntered( uint8 NetworkId ); /** @req DCM360 */
+
+#endif /*DCM_CBK_H_*/

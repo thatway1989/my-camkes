@@ -49,8 +49,6 @@
 #include <string.h>
 #include "Dcm.h"
 #include "Dcm_Internal.h"
-#include <camkes/dataport.h>
-
 #if defined(USE_DEM)
 #if defined(DCM_USE_SERVICE_CLEARDIAGNOSTICINFORMATION) || defined(DCM_USE_SERVICE_READDTCINFORMATION) || defined(DCM_USE_SERVICE_CONTROLDTCSETTING)
 #include "Dem.h" /* @req DCM332 */
@@ -62,7 +60,7 @@
 //#include "ComM_Dcm.h"
 //#include "PduR_Dcm.h"
 #include "ComStack_Types.h"
-
+#include <camkes/dataport.h>
 
 // State variable
 typedef enum
@@ -87,21 +85,18 @@ const Dcm_ConfigType *Dcm_ConfigPtr;
  * Procedure:	Dcm_GetVersionInfo
  * Reentrant:	Yes
  */
-#if ( DCM_VERSION_INFO_API == STD_ON )
 /* @req DCM337 */
 /* @req DCM065 */
 /* @req DCM335 */
 /* @req DCM336 */
 void Dcm_GetVersionInfo (Std_VersionInfoType* versionInfo)
 {
-	versionInfo->vendorID = (uint16)DCM_VENDOR_ID;	 /* SBSW_DCM_PARAM_PTR_WRITE */
+    versionInfo->vendorID = (uint16)DCM_VENDOR_ID;	 /* SBSW_DCM_PARAM_PTR_WRITE */
     versionInfo->moduleID = (uint16)DCM_MODULE_ID;	 /* SBSW_DCM_PARAM_PTR_WRITE */
     versionInfo->sw_major_version = (uint8)DCM_SW_MAJOR_VERSION;	/* SBSW_DCM_PARAM_PTR_WRITE */
     versionInfo->sw_minor_version = (uint8)DCM_SW_MINOR_VERSION;	/* SBSW_DCM_PARAM_PTR_WRITE */
     versionInfo->sw_patch_version = (uint8)DCM_SW_PATCH_VERSION;	/* SBSW_DCM_PARAM_PTR_WRITE */
 }
-
-#endif /* DCM_VERSION_INFO_API */
 
 /*
  * Procedure:	Dcm_Init
@@ -110,8 +105,7 @@ void Dcm_GetVersionInfo (Std_VersionInfoType* versionInfo)
 void Dcm_Init(const Dcm_ConfigType *ConfigPtr) /* @req DCM037 */
 {
     VALIDATE_NO_RV(((NULL != ConfigPtr) && (NULL != ConfigPtr->Dsl) && (NULL != ConfigPtr->Dsd) && (NULL != ConfigPtr->Dsp)), DCM_INIT_ID, DCM_E_CONFIG_INVALID);
- 
-   LOGI("begin");
+
     Dcm_ConfigPtr = ConfigPtr;
 #ifdef DCM_USE_SERVICE_RESPONSEONEVENT
     DCM_ROE_Init();
@@ -122,7 +116,6 @@ void Dcm_Init(const Dcm_ConfigType *ConfigPtr) /* @req DCM037 */
     firstMainAfterInit = TRUE;
     dcmState = DCM_INITIALIZED;
 
-    LOGI("end");
     return;
 }
 
