@@ -24,7 +24,9 @@
 
 //lint -e451 //451 PC-Lint OK. Sl� av regel helt?
 #include "ComStack_Types.h"
+/* stlAdd my define begin */
 #include <camkes/dataport.h>
+/* stlAdd my define end */
 
 /*
  * Interfaces for callback notifications from PduR and ComM (8.4)

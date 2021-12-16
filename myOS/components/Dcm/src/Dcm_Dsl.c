@@ -497,6 +497,7 @@ static Std_ReturnType sendResponseWithStatus(const Dcm_DslProtocolRowType *proto
                 DsdClearSuppressPosRspMsg();
             }
             /* @req DCM115 Partially The P2ServerMin has not been implemented. */
+/* stlAdd my define begin */
             //transmitResult = PduR_DcmTransmit(mainConnection->DslProtocolTx->DcmDslProtocolTxPduId, &(runtime->localTxBuffer.PduInfo));
             if (transmitResult != E_OK) {
                 // IMPROVEMENT: What to do here?
@@ -894,6 +895,7 @@ void DslMain(void) {
                         DEBUG( DEBUG_MEDIUM, "runtime->externalTxBufferStatus enter state DCM_TRANSMIT_SIGNALED.\n" );
                         txRuntime->externalTxBufferStatus = DCM_TRANSMIT_SIGNALED;
                         /* @req DCM237 Will trigger PduR (CanTP) to call DslProvideTxBuffer(). */
+/* stlAdd my define begin */
                         //transmitResult = PduR_DcmTransmit(txPduId, &txRuntime->diagnosticResponseFromDsd);
                         PduIdType dcmType2TxPduId = 0xffff;
                         if( E_OK != transmitResult ) {
@@ -923,10 +925,11 @@ void DslMain(void) {
                     } else {
                         DEBUG( DEBUG_MEDIUM, "***** WARNING, THIS IS UNEXPECTED !!! ********.\n" );
                         const PduIdType txPduId = protocolRowEntry->DslConnections->DslMainConnection->DslProtocolTx->DcmDslProtocolTxPduId;
-                        DEBUG( DEBUG_MEDIUM, "runtime->externalTxBufferStatus enter state DSD_PENDING_RESPONSE_SIGNALED,txPduId=%d.\n", txPduId);
+                        DEBUG( DEBUG_MEDIUM, "runtime->externalTxBufferStatus enter state DSD_PENDING_RESPONSE_SIGNALED.\n", txPduId);
                         runtime->externalTxBufferStatus = DCM_TRANSMIT_SIGNALED;
                         DEBUG( DEBUG_MEDIUM, "Calling PduR_DcmTransmit with txPduId = %d from DslMain\n", txPduId);
                         /* @req DCM237 Will trigger PduR (CanTP) to call DslProvideTxBuffer(). */
+/* stlAdd my define begin */
                         //transmitResult = PduR_DcmTransmit(txPduId, &runtime->diagnosticResponseFromDsd);
                         if (transmitResult != E_OK) {
                             /* Transmit request failed, release the buffers */
@@ -1278,6 +1281,7 @@ void DslTpRxIndicationFromPduR(PduIdType dcmRxPduId, NotifResultType result, boo
                                         /* @req DCM079 */
                                         /* @req DCM460 */
                                         /* @req DCM461 no new cancel is done */
+/* stlAdd my define begin */
                                         //(void)PduR_DcmCancelTransmit(DsdDslGetCurrentTxPduId());
                                     }
                                 }

@@ -47,7 +47,7 @@
 #include "ComStack_Types.h"
 #include "Dcm_Cbk.h"
 
-/* my define begin */
+/* stlAdd my define begin */
 #define DCM_LIMITNUMBER_PERIODDATA 128
 #define DCM_MAX_DDDSOURCE_NUMBER 128
 #define DCM_MAIN_FUNCTION_PERIOD_TIME_MS 100
@@ -55,7 +55,7 @@
 
 #define DCM_FIRST_PERIODIC_TX_PDU 1u
 #define DCM_NOF_PERIODIC_TX_PDU 3u
-/* my define end */
+/* stlAdd my define end */
 
 #if (DCM_DEV_ERROR_DETECT == STD_ON)
 // Error codes produced by this module defined by Autosar

@@ -272,6 +272,8 @@ Std_ReturnType ReadSRSignal(const Dcm_DspDataType *dataPtr, uint16 bitPosition, 
         case DCM_UINT8_N:
         default:
             /* Data type not supported for SR */
+/* stlAdd my define begin */
+            //ASSERT(0);
             assert(0);
             break;
     }

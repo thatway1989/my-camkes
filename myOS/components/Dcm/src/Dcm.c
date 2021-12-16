@@ -373,7 +373,7 @@ void Dcm_ExternalProcessingDone(Dcm_MsgContextType* pMsgContext)
     VALIDATE_NO_RV((NULL != pMsgContext), DCM_EXTERNALPROCESSINGDONE_ID, DCM_E_PARAM);
     DsdExternalProcessingDone(pMsgContext);
 }
-
+/* stlAdd my define begin */
 void SchM_Enter_Dcm_EA_0()
 {
 
@@ -391,3 +391,4 @@ int run(void){
 	LOGI("run end");
 	return 0;
 }
+/* stlAdd my define end */
